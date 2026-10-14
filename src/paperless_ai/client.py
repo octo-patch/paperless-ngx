@@ -41,6 +41,14 @@ LLM_SYSTEM_PROMPT = (
 # openai-python rejects empty keys since 2.34.0, "fake" is the stand-in from
 # llama-index's own OpenAILike docs https://docs.llamaindex.ai/en/stable/api_reference/llms/openai_like/
 PLACEHOLDER_API_KEY: Final = "fake"
+MINIMAX_ENDPOINTS: Final = frozenset(
+    {
+        "https://api.minimax.io/v1",
+        "https://api.minimaxi.com/v1",
+    },
+)
+MINIMAX_MODEL: Final = "MiniMax-M3"
+MINIMAX_CONTEXT_WINDOW: Final = 1_000_000
 
 
 class AIClient:
@@ -104,17 +112,25 @@ class AIClient:
                     allow_internal=self.settings.llm_allow_internal_endpoints,
                     timeout=self.settings.llm_request_timeout,
                 )
+            normalized_endpoint = endpoint.rstrip("/") if endpoint else None
+            is_minimax = normalized_endpoint in MINIMAX_ENDPOINTS
+            llm_kwargs = {
+                "model": self.settings.llm_model
+                or (MINIMAX_MODEL if is_minimax else "gpt-3.5-turbo"),
+                "api_base": endpoint,
+                "api_key": self.settings.llm_api_key or PLACEHOLDER_API_KEY,
+                "timeout": self.settings.llm_request_timeout,
+                "is_chat_model": True,
+                "is_function_calling_model": True,
+                "system_prompt": LLM_SYSTEM_PROMPT,
+                "additional_kwargs": self.settings.llm_extra_params,
+                "http_client": http_client,
+                "async_http_client": async_http_client,
+            }
+            if is_minimax:
+                llm_kwargs["context_window"] = MINIMAX_CONTEXT_WINDOW
             return OpenAILike(
-                model=self.settings.llm_model or "gpt-3.5-turbo",
-                api_base=endpoint,
-                api_key=self.settings.llm_api_key or PLACEHOLDER_API_KEY,
-                timeout=self.settings.llm_request_timeout,
-                is_chat_model=True,
-                is_function_calling_model=True,
-                system_prompt=LLM_SYSTEM_PROMPT,
-                additional_kwargs=self.settings.llm_extra_params,
-                http_client=http_client,
-                async_http_client=async_http_client,
+                **llm_kwargs,
             )
         else:
             raise ValueError(f"Unsupported LLM backend: {self.settings.llm_backend}")

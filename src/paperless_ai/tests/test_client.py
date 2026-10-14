@@ -83,6 +83,19 @@ def test_get_llm_openai(mock_ai_config, mock_openai_llm):
     assert client.llm == mock_openai_llm.return_value
 
 
+@pytest.mark.parametrize("endpoint", ["https://api.minimax.io/v1", "https://api.minimaxi.com/v1/"])
+def test_get_llm_minimax_defaults(endpoint, mock_ai_config, mock_openai_llm):
+    mock_ai_config.llm_backend = "openai-like"
+    mock_ai_config.llm_model = None
+    mock_ai_config.llm_api_key = "test_api_key"
+    mock_ai_config.llm_endpoint = endpoint
+
+    AIClient()
+
+    assert mock_openai_llm.call_args.kwargs["model"] == "MiniMax-M3"
+    assert mock_openai_llm.call_args.kwargs["context_window"] == 1_000_000
+
+
 @pytest.mark.parametrize("configured_key", [None, ""])
 def test_get_llm_openai_without_api_key_sends_placeholder(
     mock_ai_config,
