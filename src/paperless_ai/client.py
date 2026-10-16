@@ -87,6 +87,37 @@ class AIClient:
                     transport=async_transport,
                 ),
             )
+        elif self.settings.llm_backend == LLMBackend.MINIMAX:
+            from llama_index.llms.openai_like import OpenAILike
+
+            endpoint = self.settings.llm_endpoint or "https://api.minimax.io/v1"
+            validate_outbound_http_url(
+                endpoint,
+                allow_internal=self.settings.llm_allow_internal_endpoints,
+            )
+            http_client = create_pinned_httpx_client(
+                endpoint,
+                allow_internal=self.settings.llm_allow_internal_endpoints,
+                timeout=self.settings.llm_request_timeout,
+            )
+            async_http_client = create_pinned_async_httpx_client(
+                endpoint,
+                allow_internal=self.settings.llm_allow_internal_endpoints,
+                timeout=self.settings.llm_request_timeout,
+            )
+            return OpenAILike(
+                model=self.settings.llm_model or "MiniMax-M3",
+                api_base=endpoint,
+                api_key=self.settings.llm_api_key or PLACEHOLDER_API_KEY,
+                context_window=1_000_000,
+                timeout=self.settings.llm_request_timeout,
+                is_chat_model=True,
+                is_function_calling_model=True,
+                system_prompt=LLM_SYSTEM_PROMPT,
+                additional_kwargs=self.settings.llm_extra_params,
+                http_client=http_client,
+                async_http_client=async_http_client,
+            )
         elif self.settings.llm_backend == LLMBackend.OPENAI_LIKE:
             from llama_index.llms.openai_like import OpenAILike
 
@@ -193,7 +224,7 @@ class AIClient:
 
             return isinstance(exc, ResponseError)
 
-        if self.settings.llm_backend == LLMBackend.OPENAI_LIKE:
+        if self.settings.llm_backend in (LLMBackend.OPENAI_LIKE, LLMBackend.MINIMAX):
             from openai import APIStatusError
 
             return isinstance(exc, APIStatusError)
@@ -201,7 +232,10 @@ class AIClient:
         return False
 
     def _is_openai_timeout(self, exc: Exception) -> bool:
-        if self.settings.llm_backend != LLMBackend.OPENAI_LIKE:
+        if self.settings.llm_backend not in (
+            LLMBackend.OPENAI_LIKE,
+            LLMBackend.MINIMAX,
+        ):
             return False
 
         # Keep OpenAI imports out of module import paths and only load the SDK

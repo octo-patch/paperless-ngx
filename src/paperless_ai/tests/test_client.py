@@ -60,6 +60,32 @@ def test_get_llm_ollama(mock_ai_config, mock_ollama_llm):
     assert client.llm == mock_ollama_llm.return_value
 
 
+def test_get_llm_minimax_uses_explicit_provider_defaults(
+    mock_ai_config, mock_openai_llm,
+):
+    mock_ai_config.llm_backend = "minimax"
+    mock_ai_config.llm_model = None
+    mock_ai_config.llm_api_key = "test_api_key"
+    mock_ai_config.llm_endpoint = None
+
+    client = AIClient()
+
+    mock_openai_llm.assert_called_once_with(
+        model="MiniMax-M3",
+        api_base="https://api.minimax.io/v1",
+        api_key="test_api_key",
+        context_window=1_000_000,
+        timeout=120,
+        is_chat_model=True,
+        is_function_calling_model=True,
+        system_prompt=LLM_SYSTEM_PROMPT,
+        additional_kwargs={},
+        http_client=ANY,
+        async_http_client=ANY,
+    )
+    assert client.llm == mock_openai_llm.return_value
+
+
 def test_get_llm_openai(mock_ai_config, mock_openai_llm):
     mock_ai_config.llm_backend = "openai-like"
     mock_ai_config.llm_model = "test_model"

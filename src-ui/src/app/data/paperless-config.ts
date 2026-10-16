@@ -67,6 +67,7 @@ export const LLMEmbeddingBackendConfig = {
 export const LLMBackendConfig = {
   OPENAI_LIKE: 'openai-like',
   OLLAMA: 'ollama',
+  MINIMAX: 'minimax',
 }
 
 export const RemoteOCREngineConfig = {

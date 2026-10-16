@@ -2179,9 +2179,10 @@ local or slow inference servers that need more time to generate responses.
 
 #### [`PAPERLESS_AI_LLM_BACKEND=<str>`](#PAPERLESS_AI_LLM_BACKEND) {#PAPERLESS_AI_LLM_BACKEND}
 
-: The AI backend to use. This can be either "openai-like" or "ollama". If set to "ollama", the AI
-features will be run locally on your machine. If set to "openai-like", the AI features will use
-an OpenAI-compatible API endpoint, including OpenAI itself and compatible providers. This
+: The AI backend to use. This can be "openai-like", "ollama", or "minimax". If set to "ollama", the AI
+features will be run locally. If set to "openai-like", they use an OpenAI-compatible endpoint.
+If set to "minimax", Paperless uses MiniMax's OpenAI-compatible API at
+`https://api.minimax.io/v1` with a 1,000,000-token context and MiniMax-M3 by default. This
 setting is required to be set to use the AI features.
 
     Defaults to None.
@@ -2199,7 +2200,7 @@ setting is required to be set to use the AI features.
 
 : The model to use for the AI backend, i.e. "gpt-3.5-turbo", "gpt-4" or any of the models supported
 by the current backend. If not supplied, defaults to "gpt-3.5-turbo" for the OpenAI-compatible
-backend and "llama3.1" for Ollama.
+backend, "MiniMax-M3" for MiniMax, and "llama3.1" for Ollama.
 See [choosing AI models](https://github.com/paperless-ngx/paperless-ngx/wiki/AI-Model-Recommendations)
 for local versus remote and model-size considerations.
 
