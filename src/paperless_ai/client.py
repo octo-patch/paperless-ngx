@@ -41,6 +41,11 @@ LLM_SYSTEM_PROMPT = (
 # openai-python rejects empty keys since 2.34.0, "fake" is the stand-in from
 # llama-index's own OpenAILike docs https://docs.llamaindex.ai/en/stable/api_reference/llms/openai_like/
 PLACEHOLDER_API_KEY: Final = "fake"
+MINIMAX_ENDPOINT: Final = "https://api.minimax.io/v1"
+MINIMAX_CONTEXT_WINDOWS: Final = {
+    "MiniMax-M3": 1_000_000,
+    "MiniMax-M2.7": 204_800,
+}
 
 
 class AIClient:
@@ -87,10 +92,20 @@ class AIClient:
                     transport=async_transport,
                 ),
             )
-        elif self.settings.llm_backend == LLMBackend.OPENAI_LIKE:
+        elif self.settings.llm_backend in (LLMBackend.OPENAI_LIKE, LLMBackend.MINIMAX):
             from llama_index.llms.openai_like import OpenAILike
 
-            endpoint = self.settings.llm_endpoint or None
+            is_minimax = self.settings.llm_backend == LLMBackend.MINIMAX
+            endpoint = self.settings.llm_endpoint or (
+                MINIMAX_ENDPOINT if is_minimax else None
+            )
+            model = self.settings.llm_model or (
+                "MiniMax-M3" if is_minimax else "gpt-3.5-turbo"
+            )
+            context_window = MINIMAX_CONTEXT_WINDOWS.get(
+                model,
+                self.settings.llm_context_size,
+            )
             http_client = None
             async_http_client = None
             if endpoint:
@@ -104,8 +119,8 @@ class AIClient:
                     allow_internal=self.settings.llm_allow_internal_endpoints,
                     timeout=self.settings.llm_request_timeout,
                 )
-            return OpenAILike(
-                model=self.settings.llm_model or "gpt-3.5-turbo",
+            openai_kwargs = dict(
+                model=model,
                 api_base=endpoint,
                 api_key=self.settings.llm_api_key or PLACEHOLDER_API_KEY,
                 timeout=self.settings.llm_request_timeout,
@@ -116,6 +131,9 @@ class AIClient:
                 http_client=http_client,
                 async_http_client=async_http_client,
             )
+            if is_minimax:
+                openai_kwargs["context_window"] = context_window
+            return OpenAILike(**openai_kwargs)
         else:
             raise ValueError(f"Unsupported LLM backend: {self.settings.llm_backend}")
 

@@ -1231,7 +1231,7 @@ if LLM_REQUEST_TIMEOUT < 1:
     raise ImproperlyConfigured("PAPERLESS_AI_LLM_REQUEST_TIMEOUT must be >= 1")
 LLM_BACKEND = get_choice_from_env(
     "PAPERLESS_AI_LLM_BACKEND",
-    {"ollama", "openai-like"},
+    {"ollama", "openai-like", "minimax"},
 )
 LLM_MODEL = os.getenv("PAPERLESS_AI_LLM_MODEL")
 LLM_API_KEY = os.getenv("PAPERLESS_AI_LLM_API_KEY")
